@@ -1,0 +1,25 @@
+# IDE
+.idea/    
+*.code-workspace  
+
+# python venv
+venv/
+
+# python bytecode
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db 
+
+# Docker
+.dockerignore
+
+# Logs and data
+*.log
+*.csv
+*.json
+
+# env and config
+.env
