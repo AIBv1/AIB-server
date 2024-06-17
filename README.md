@@ -5,7 +5,11 @@
 ## 환경 세팅
 TO DO
 ## 실행
-TO DO
+docker build -t kkini .
+docker run -it kkini
+
 
 ## 스웨거
 http://localhost:8000/docs#/
+
+
