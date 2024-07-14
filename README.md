@@ -6,7 +6,7 @@
 TO DO
 ## 실행
 docker build -t kkini .
-docker run -it kkini
+docker run -p 8000:8000 -it kkini
 
 
 ## 스웨거

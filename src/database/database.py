@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -11,7 +12,7 @@ class MySQLClient:
             self.connection_url, echo=True
         )
         self.sessionLocal = sessionmaker(
-            self.engine, class_=AsyncSession, expired_on_commit=False
+            bind = self.engine, class_=AsyncSession, expired_on_commit=False
         )
 
     @staticmethod
@@ -21,13 +22,9 @@ class MySQLClient:
         db_host = os.getenv("DB_HOST")
         db_port = os.getenv("DB_PORT")
         db_name = os.getenv("DB_NAME")
-        return "jdbc:mysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        return f"mysql+aiomysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
-
-    def get_db(self):
-        db = self.SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+    async def get_db(self):
+        async with AsyncSession(self.engine) as session:
+            yield session
 

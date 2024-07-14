@@ -1,11 +1,18 @@
+from typing import Optional
+
 import httpx
 from fastapi import FastAPI, Request, Depends
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
 
+from src.database.model import SNSType
 from src.services.user_service import UserService
+
 router = APIRouter()
-user_service = UserService
+user_service = UserService()
+
+def get_user_service():
+    return user_service
 
 KAKAO_CLIENT_ID = "d79713dd6f4e3b0f92c1d514b57965e2"
 KAKAO_CLIENT_SECRET = "TjnTVGUhF5zWkHdSxgkijcRESqZEXIga"
@@ -20,16 +27,17 @@ KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me"
 async def kakao_login():
 
     kakao_login_url = (
-
         f"{KAKAO_AUTH_URL}?client_id={KAKAO_CLIENT_ID}"
         f"&redirect_uri={KAKAO_REDIRECT_URI}&response_type=code"
+        f"&scope=account_email"
     )
 
     return RedirectResponse(url = kakao_login_url)
 
 @router.get("/api/auth/kakao/callback")
-async def kakao_callback(request: Request):
+async def kakao_callback(request: Request, user_service: UserService = Depends(get_user_service)):
     code = request.query_params.get("code")
+
     if code is None:
         return {"error": "No code provided"}
 
@@ -57,6 +65,13 @@ async def kakao_callback(request: Request):
             headers={"Authorization": f"Bearer {access_token}"},
         )
     user_info = user_info_response.json()
+    kakao_account = user_info.get("kakao_account", {})
+    email = kakao_account.get("email")
+    profile = kakao_account.get("profile", {})
+    username = profile.get("nickname")
+    profile_image = profile.get("profile_image_url")
 
-    return user_info
+    user = await user_service.get_or_create_user(email=email, username=username, sns_type=SNSType.KAKAO, profile_image_url=profile_image)
+
+    return user
 
