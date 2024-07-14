@@ -15,4 +15,7 @@ COPY .env .env
 
 ENV PYTHONPATH=/usr/src/app/src
 
+# 애플리케이션에서 사용되는 포트를 노출
+EXPOSE 8000
+
 CMD ["poetry", "run", "python", "run.py"]
