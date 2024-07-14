@@ -13,3 +13,16 @@ docker run -it kkini
 http://localhost:8000/docs#/
 
 
+
+## 도커 말고 로컬 빠른 실행 버전
+```bash
+poetry shell
+```
+```bash
+poetry install
+```
+
+## 실행
+
+```bash
+python run.py
