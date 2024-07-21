@@ -1,9 +1,18 @@
+from datetime import timedelta, datetime
+from http.client import HTTPException
 from typing import Optional
 
 import httpx
 from fastapi import FastAPI, Request, Depends
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+
+from src.dtos.refresh_token_request import TokenRefreshRequest
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 from src.database.model import SNSType
 from src.services.user_service import UserService
@@ -22,6 +31,10 @@ KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
 KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
 KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me"
 
+SECRET_KEY = "temp_secret_key"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 @router.get("/api/users/login/kakao")
 async def kakao_login():
@@ -73,5 +86,63 @@ async def kakao_callback(request: Request, user_service: UserService = Depends(g
 
     user = await user_service.get_or_create_user(email=email, username=username, sns_type=SNSType.KAKAO, profile_image_url=profile_image)
 
-    return user
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=access_token_expires)
+    refresh_token = create_refresh_token(data={"sub": user.email}, expires_delta=refresh_token_expires)
 
+    return {"access_token": access_token, "refresh_token": refresh_token}
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=7)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    return email
+
+
+@router.post("/api/users/token/refresh")
+async def refresh_token(request: TokenRefreshRequest):
+    try:
+        refresh_token = request.refresh_token
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        new_access_token = create_access_token(data={"sub": email}, expires_delta=access_token_expires)
+        refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        new_refresh_token = create_refresh_token(data={"sub": email}, expires_delta=refresh_token_expires)
+        return {"access_token": new_access_token, "refresh_token": new_refresh_token}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
