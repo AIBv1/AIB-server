@@ -32,3 +32,10 @@ class MySqlService:
             await session.refresh(user)
 
         return user
+
+    async def get_user_by_email(self, email: str):
+        async for session in self.mysql_client.get_db():
+            result = await session.execute(
+                select(User).filter_by(email=email)
+            )
+        return  result.scalars().first()

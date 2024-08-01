@@ -15,10 +15,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 from src.database.model import SNSType
-from src.services.user_service import UserService
+from src.services.user_service import UserService, MySqlService
 
 router = APIRouter()
 user_service = UserService()
+mysql_service = MySqlService()
+def get_mysql_service():
+    return
 
 def get_user_service():
     return user_service
@@ -33,7 +36,7 @@ KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me"
 
 SECRET_KEY = "temp_secret_key"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES =60 * 24
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 @router.get("/api/users/login/kakao")
@@ -146,3 +149,9 @@ async def refresh_token(request: TokenRefreshRequest):
         return {"access_token": new_access_token, "refresh_token": new_refresh_token}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+@router.get("/api/users/me")
+async def read_users_me(request: Request, mysql_service: MySqlService = Depends(get_mysql_service())):
+    if not hasattr(request.state, "user"):
+        raise HTTPException(status_code=401, detail="User not authenticated")
+    return await mysql_service.get_user_by_email(email=request.state.user)
