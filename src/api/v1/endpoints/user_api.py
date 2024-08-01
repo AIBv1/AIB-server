@@ -28,7 +28,10 @@ def get_user_service():
 
 KAKAO_CLIENT_ID = "d79713dd6f4e3b0f92c1d514b57965e2"
 KAKAO_CLIENT_SECRET = "TjnTVGUhF5zWkHdSxgkijcRESqZEXIga"
-KAKAO_REDIRECT_URI = "http://localhost:8000/api/auth/kakao/callback"
+# KAKAO_REDIRECT_URI = "http://localhost:8000/api/auth/kakao/callback"
+KAKAO_REDIRECT_URI = "http://100.27.81.247/api/auth/kakao/callback"
+
+
 
 KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
 KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
