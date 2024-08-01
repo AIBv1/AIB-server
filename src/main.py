@@ -54,7 +54,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
         return response
 
 # 제외할 경로 설정
-excluded_paths = ["/api/token", "/api/users/login/kakao", "/api/auth/kakao/callback", "/api/users/token/refresh"]
+excluded_paths = ["/api/token", "/api/users/login/kakao", "/api/auth/kakao/callback", "/api/users/token/refresh", "/api/hello"]
 
 app.add_middleware(JWTMiddleware, excluded_paths=excluded_paths)
 
